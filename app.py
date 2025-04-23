@@ -1,68 +1,54 @@
 from flask import Flask, render_template, request, redirect, url_for, session
-from functools import wraps
+from datetime import datetime
 
 app = Flask(__name__)
+app.secret_key = 'your_secret_key'
 
-# セッション用の秘密鍵（実際にはもっと強力なランダムな鍵を使うこと）
-app.secret_key = 'your_secret_key_here'
+# 仮ユーザー辞書
+users = {
+    'user1': 'pass1',
+    'user2': 'pass2',
+    'user3': 'pass3'
+}
 
-# ダミーのユーザー情報（本番環境ではDBを使用すべき）
-users = {'admin': 'password123', 'guest1': '000111'}
+# 投稿データ保持用（メモリ上）
+posts = []
 
-# ログイン必須のデコレーター
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'username' not in session:
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
-
-# ダミーのメッセージリスト（本番環境ではDBを使用すべき）
-messages = []
-
-# ホームページ（掲示板）
-@app.route('/')
-@login_required
-def index():
-    return render_template("index.html", messages=messages)
-
-# 掲示板の投稿を処理（POST）
-@app.route('/post_message', methods=['POST'])
-@login_required
-def post_message():
-    if request.method == 'POST':
-        message = request.form['message']  # フォームからメッセージを受け取る
-        username = session['username']  # ログインしているユーザー名を取得
-        
-        if message:
-            # メッセージとユーザー名を一緒に保存
-            messages.append({'username': username, 'message': message})
-        return redirect(url_for('index'))  # 投稿後は掲示板ページにリダイレクト
-
-# ログインページ（GET と POST メソッド対応）
+# ログインページ
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        
-        # ユーザー情報チェック
         if username in users and users[username] == password:
-            session['username'] = username  # セッションにユーザー名を保存
-            return redirect(url_for('index'))  # ログイン成功後、ホームへリダイレクト
-        
-        return 'Invalid credentials, please try again!'  # 認証失敗メッセージ
-    
-    # GETリクエスト時はログインフォームを表示
+            session['username'] = username
+            return redirect(url_for('index'))
+        else:
+            return "ログイン失敗"
     return render_template('login.html')
 
 # ログアウト
 @app.route('/logout')
 def logout():
-    session.pop('username', None)  # セッションからユーザー名を削除
-    return redirect(url_for('login'))  # ログアウト後はログイン画面にリダイレクト
+    session.pop('username', None)
+    return redirect(url_for('login'))
+
+# 掲示板ページ
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        content = request.form['content']
+        if content:
+            posts.append({
+                'user': session['username'],
+                'content': content,
+                'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            })
+
+    return render_template('index.html', posts=posts)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True)
-
+    app.run(host='0.0.0.0', port=8080, debug=False)
