@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>掲示板</title>
+</head>
+<body>
+    <h1>掲示板</h1>
+    
+    <!-- メッセージ投稿フォーム -->
+    <form action="{{ url_for('post_message') }}" method="POST">
+        <textarea name="message" required></textarea>
+        <button type="submit">投稿</button>
+    </form>
+
+    <!-- メッセージの表示 -->
+    <h2>投稿されたメッセージ</h2>
+    <ul>
+        {% for msg in messages %}
+        <li><strong>{{ msg.username }}:</strong> {{ msg.message }}</li>
+        {% endfor %}
+    </ul>
+
+    <!-- ログアウトリンク -->
+    <a href="{{ url_for('logout') }}">ログアウト</a>
+</body>
+</html>
